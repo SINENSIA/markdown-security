@@ -4,8 +4,17 @@ const sanitizeHtml = require('sanitize-html');
 const app = express();
 app.use(express.json());
 
+const PROHIBITED_TAGS = ['script', 'iframe', 'object', 'embed', 'form', 'meta', 'link'];
+
 const validateMarkdown = (markdown) => {
-    return sanitizeHtml(markdown, {
+    // Buscar etiquetas prohibidas antes de sanitizar
+    const regex = new RegExp(`<(${PROHIBITED_TAGS.join('|')})\\b`, 'gi');
+    if (regex.test(markdown)) {
+        return { safe: false, error: "Malicious content detected", sanitized: null };
+    }
+
+    // Sanitizar el contenido
+    const sanitized = sanitizeHtml(markdown, {
         allowedTags: [
             'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'blockquote', 'ul', 'ol', 'li', 'br', 'hr',
             'strong', 'em', 'u', 's', 'b', 'i', 'mark', 'sub', 'sup',
@@ -20,13 +29,10 @@ const validateMarkdown = (markdown) => {
             'code': ['class']
         },
         allowedSchemes: ['http', 'https', 'mailto'],
-        disallowedTagsMode: 'discard'
+        disallowedTagsMode: 'discard' // Esto sigue eliminando las etiquetas
     });
-};
 
-const extractFrontMatter = (markdown) => {
-    const match = markdown.match(/^---\n([\s\S]*?)\n---\n/);
-    return match ? match[0] : '';
+    return { safe: true, sanitized };
 };
 
 app.post('/validate', (req, res) => {
@@ -37,14 +43,16 @@ app.post('/validate', (req, res) => {
     }
 
     markdown = String(markdown);
-    let frontMatter = extractFrontMatter(markdown);
+    let frontMatter = markdown.match(/^---\n([\s\S]*?)\n---\n/)?.[0] || '';
     markdown = markdown.replace(/^---\n([\s\S]*?)\n---\n/, '');
-    let sanitized = validateMarkdown(markdown);
-    let finalMarkdown = frontMatter ? `${frontMatter}\n${sanitized}` : sanitized;
 
-    if (sanitized !== markdown) {
-        return res.status(400).json({ safe: false, error: "Malicious content detected", sanitized: finalMarkdown });
+    // Validar contenido antes de sanitizar
+    const validationResult = validateMarkdown(markdown);
+    if (!validationResult.safe) {
+        return res.status(400).json({ safe: false, error: "Malicious content detected", sanitized: null });
     }
+
+    let finalMarkdown = frontMatter ? `${frontMatter}\n${validationResult.sanitized}` : validationResult.sanitized;
 
     res.json({ safe: true, message: "Markdown is safe", sanitized: finalMarkdown });
 });
