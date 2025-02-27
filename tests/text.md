@@ -3,7 +3,7 @@ title: markmap
 markmap:
   colorFreezeLevel: 2
 ---
-<script>alert('test')</script>
+
 ## Links
 
 - [Website](https://markmap.js.org/)
