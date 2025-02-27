@@ -7,13 +7,7 @@ app.use(express.json());
 const PROHIBITED_TAGS = ['script', 'iframe', 'object', 'embed', 'form', 'meta', 'link'];
 
 const validateMarkdown = (markdown) => {
-    // Buscar etiquetas prohibidas antes de sanitizar
-    const regex = new RegExp(`<(${PROHIBITED_TAGS.join('|')})\\b`, 'gi');
-    if (regex.test(markdown)) {
-        return { safe: false, error: "Malicious content detected", sanitized: null };
-    }
-
-    // Sanitizar el contenido
+    // Sanitizar el contenido antes de verificar seguridad
     const sanitized = sanitizeHtml(markdown, {
         allowedTags: [
             'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'blockquote', 'ul', 'ol', 'li', 'br', 'hr',
@@ -29,10 +23,13 @@ const validateMarkdown = (markdown) => {
             'code': ['class']
         },
         allowedSchemes: ['http', 'https', 'mailto'],
-        disallowedTagsMode: 'discard' // Esto sigue eliminando las etiquetas
+        disallowedTagsMode: 'discard' // Esto elimina las etiquetas no permitidas
     });
 
-    return { safe: true, sanitized };
+    // Determinar si el contenido original ha sido modificado
+    const isSafe = markdown.trim() === sanitized.trim();
+
+    return { safe: isSafe, sanitized };
 };
 
 app.post('/validate', (req, res) => {
@@ -46,16 +43,25 @@ app.post('/validate', (req, res) => {
     let frontMatter = markdown.match(/^---\n([\s\S]*?)\n---\n/)?.[0] || '';
     markdown = markdown.replace(/^---\n([\s\S]*?)\n---\n/, '');
 
-    // Validar contenido antes de sanitizar
+    // Validar contenido después de sanitizar
     const validationResult = validateMarkdown(markdown);
-    if (!validationResult.safe) {
-        return res.status(400).json({ safe: false, error: "Malicious content detected", sanitized: null });
-    }
 
     let finalMarkdown = frontMatter ? `${frontMatter}\n${validationResult.sanitized}` : validationResult.sanitized;
 
-    res.json({ safe: true, message: "Markdown is safe", sanitized: finalMarkdown });
+    res.status(200).json({
+        safe: validationResult.safe,
+        message: validationResult.safe ? "Markdown is safe" : "Markdown contains unsafe content",
+        sanitized: finalMarkdown
+    });
 });
 
-const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => console.log(`Security Service running on port ${PORT}`));
+
+// Solo inicia el servidor si este script es ejecutado directamente
+if (require.main === module) {
+    const PORT = process.env.PORT || 5001;
+    app.listen(PORT, () => {
+        console.log(`Servidor escuchando en http://localhost:${PORT}`);
+    });
+}
+
+module.exports = app; // Exportamos la app para los tests
