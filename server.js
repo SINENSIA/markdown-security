@@ -2,6 +2,7 @@ const express = require('express');
 const sanitizeHtml = require('sanitize-html');
 
 const app = express();
+app.set('query parser', 'simple');
 app.use(express.json());
 
 const PROHIBITED_TAGS = ['script', 'iframe', 'object', 'embed', 'form', 'meta', 'link'];
