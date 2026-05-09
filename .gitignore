@@ -1,2 +1,58 @@
+# Dependencies
 node_modules/
+
+# Environment / secrets
 .env
+.env.*
+!.env.example
+
+# Logs & runtime debug
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test output
+coverage/
+.nyc_output/
+*.lcov
+
+# Build / cache / temp
+dist/
+build/
+.cache/
+tmp/
+.tmp/
+*.tgz
+
+# OS noise
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*~
+
+# IDE / editor (use cloud profiles, not the repo)
+.idea/
+.vscode/
+.fleet/
+.history/
+.project
+.classpath
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+
+# Local Docker overrides
+docker-compose.override.yml
+docker-compose.override.yaml
+
+# Local AI tooling
+.claude/
+CLAUDE.md
+.codex/
+AGENTS.md

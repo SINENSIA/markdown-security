@@ -1,14 +1,18 @@
-FROM node:20
+FROM node:24-alpine
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
+COPY --chown=node:node package.json package-lock.json ./
 
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev && npm cache clean --force
 
-COPY . .
+COPY --chown=node:node . .
+
+USER node
 
 EXPOSE 5001
 
-CMD ["node", "server.js"]
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD node -e "fetch('http://127.0.0.1:5001/validate',{method:'POST',headers:{'content-type':'application/json'},body:'{\"markdown\":\"ok\"}'}).then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"
 
+CMD ["node", "server.js"]

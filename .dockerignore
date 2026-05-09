@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+.git
+.gitignore
+.dockerignore
+.env
+.env.*
+.claude
+CLAUDE.md
+tests
+*.md
+!README.md
+Dockerfile
+LICENSE

@@ -3,7 +3,7 @@ const sanitizeHtml = require('sanitize-html');
 
 const app = express();
 app.set('query parser', 'simple');
-app.use(express.json());
+app.use(express.json({ limit: '256kb' }));
 
 const PROHIBITED_TAGS = ['script', 'iframe', 'object', 'embed', 'form', 'meta', 'link'];
 

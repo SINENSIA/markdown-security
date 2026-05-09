@@ -1,5 +1,5 @@
 {
-  "name": "security",
+  "name": "markdown-security",
   "version": "1.0.0",
   "main": "server.js",
   "directories": {
@@ -9,16 +9,27 @@
     "test": "jest",
     "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "keywords": [
+    "markdown",
+    "sanitize",
+    "xss",
+    "security",
+    "express",
+    "microservice"
+  ],
+  "author": "SINENSIA",
+  "license": "MIT",
+  "description": "HTTP microservice that validates and sanitizes Markdown payloads against an HTML-tag allowlist.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SINENSIA/markdown-security.git"
+  },
   "dependencies": {
-    "express": "^4.21.2",
-    "sanitize-html": "^2.14.0"
+    "express": "^5.2.1",
+    "sanitize-html": "^2.17.3"
   },
   "devDependencies": {
-    "jest": "^29.7.0",
-    "supertest": "^7.0.0"
+    "jest": "^30.4.2",
+    "supertest": "^7.2.2"
   }
 }
