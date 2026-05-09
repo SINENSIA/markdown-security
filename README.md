@@ -12,12 +12,14 @@ The service is a single Express endpoint backed by [`sanitize-html`](https://www
 {
   "safe": true,
   "message": "Markdown is safe",
-  "sanitized": "..."
+  "sanitized": "...",
+  "frontMatter": null
 }
 ```
 
-- `safe` is `true` only if sanitization made no changes to the body (whitespace-trimmed comparison). Any disallowed tag, attribute, or URL scheme will flip it to `false`.
-- `sanitized` is always returned. Callers that need to be defensive should always render `sanitized` rather than the original input, regardless of the value of `safe`.
+- `safe` is `true` only if sanitization made no changes to the body **and** no HTML-like content was detected in the front matter. Any disallowed tag, attribute, or URL scheme in either part will flip it to `false`.
+- `sanitized` contains only the Markdown body, post-sanitization. It never contains the front-matter block.
+- `frontMatter` is the raw YAML between the `---` markers, or `null` if no front matter was present. **It is returned untouched** — see the front-matter section below.
 - `message` is a human-readable summary.
 
 The status code is always `200` for well-formed requests, and `400` when the `markdown` field is missing or empty.
@@ -36,7 +38,11 @@ Allowed URL schemes for hrefs and image sources: `http`, `https`, `mailto`. Anyt
 
 ### YAML front matter
 
-A leading YAML block of the form `---\n...\n---\n` is detected and **passed through untouched**: it is not run through the sanitizer and is re-prepended to the response. If your callers render front matter as HTML you must sanitize it yourself; the contract here is that front matter is metadata, not display content.
+A leading YAML block of the form `---\n...\n---\n` is detected and exposed in a separate `frontMatter` field. The block contents are **not** run through `sanitize-html` — they are returned to the caller raw. The reason is that YAML is a data format, not a display format, and trying to sanitize it as HTML produces false positives on legitimate values.
+
+What the service *does* check: if the front-matter content contains an HTML-like token (`<` immediately followed by a letter, `!`, or `/`), `safe` is set to `false`. That covers the realistic threat model — an attacker smuggling `<script>` or `<iframe>` past the sanitizer by hiding it in metadata. It does not catch every possible misuse, so:
+
+> **If you intend to render any front-matter value as HTML, sanitize it on the consumer side.** Treat `frontMatter` as untrusted input.
 
 ## Quickstart
 
@@ -56,7 +62,8 @@ curl -s -X POST http://localhost:5001/validate \
 {
   "safe": false,
   "message": "Markdown contains unsafe content",
-  "sanitized": "# Hello\n\n"
+  "sanitized": "# Hello\n\n",
+  "frontMatter": null
 }
 ```
 
@@ -80,7 +87,7 @@ The JSON body limit is fixed at `256kb`. Markdown larger than that is rejected b
 ## Security notes
 
 - **Allowlist, not denylist.** New tags are blocked by default. To extend the surface, edit the `allowedTags` / `allowedAttributes` arrays in `server.js` and add a regression test.
-- **Front matter is trusted.** See above. This is by design but worth repeating because the field name `sanitized` invites the assumption that *every* byte in the response was filtered.
+- **Front matter is exposed raw, not trusted.** It is returned in its own `frontMatter` field, never inside `sanitized`. A coarse HTML-like check decides `safe`, but the consumer must sanitize any front-matter value it intends to render as HTML.
 - **`query parser` is set to `simple`.** Express's default `qs`-based parser has shipped two array-limit DoS bypasses (`GHSA-w7fw-mjwx-w883`, `GHSA-6rw7-vpxm-498p`); the simple parser is not affected. Do not change this without re-reviewing those advisories.
 - **Body size cap.** `express.json({ limit: '256kb' })` is the first line of defence against payload-amplification attacks against `sanitize-html`.
 - **No rate limiting or auth.** This service expects to live behind a gateway that handles those concerns. If you expose it directly, put a reverse proxy in front.
