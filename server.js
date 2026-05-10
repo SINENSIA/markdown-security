@@ -5,6 +5,9 @@ const pino = require('pino');
 const pinoHttp = require('pino-http');
 const Ajv = require('ajv');
 const openapi = require('./openapi.json');
+const { loadAllowlist } = require('./lib/allowlist');
+
+const allowlist = loadAllowlist();
 
 const ajv = new Ajv({ strict: false });
 const validateRequest = ajv.compile(openapi.components.schemas.ValidateRequest);
@@ -43,24 +46,7 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '256kb' }));
 
 const validateBody = (body) => {
-    const sanitized = sanitizeHtml(body, {
-        allowedTags: [
-            'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'blockquote', 'ul', 'ol', 'li', 'br', 'hr',
-            'strong', 'em', 'u', 's', 'b', 'i', 'mark', 'sub', 'sup',
-            'pre', 'code', 'kbd', 'samp',
-            'table', 'thead', 'tbody', 'tr', 'td', 'th',
-            'a', 'img',
-            'dl', 'dt', 'dd'
-        ],
-        allowedAttributes: {
-            'a': ['href', 'title', 'target'],
-            'img': ['src', 'alt', 'width', 'height'],
-            'code': ['class']
-        },
-        allowedSchemes: ['http', 'https', 'mailto'],
-        disallowedTagsMode: 'discard'
-    });
-
+    const sanitized = sanitizeHtml(body, allowlist);
     return { safe: body.trim() === sanitized.trim(), sanitized };
 };
 

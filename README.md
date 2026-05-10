@@ -82,12 +82,28 @@ The image is built on `node:24-alpine`, runs as the unprivileged `node` user, an
 
 ## Configuration
 
-| Env var     | Default       | Description |
-|-------------|---------------|-------------|
-| `PORT`      | `5001`        | TCP port the HTTP server binds to. |
-| `LOG_LEVEL` | `info`        | `pino` log level (`trace`, `debug`, `info`, `warn`, `error`, `fatal`, `silent`). Forced to `silent` under `NODE_ENV=test`. |
+| Env var          | Default | Description |
+|------------------|---------|-------------|
+| `PORT`           | `5001`  | TCP port the HTTP server binds to. |
+| `LOG_LEVEL`      | `info`  | `pino` log level (`trace`, `debug`, `info`, `warn`, `error`, `fatal`, `silent`). Forced to `silent` under `NODE_ENV=test`. |
+| `ALLOWLIST_FILE` | _unset_ | Path to a JSON file with a custom `sanitize-html` configuration. When set, replaces the built-in allowlist wholesale. See [Customising the allowlist](#customising-the-allowlist). |
 
 The JSON body limit is fixed at `256kb`. Markdown larger than that is rejected by Express with a `413` before reaching the handler. Adjust `express.json({ limit: ... })` in `server.js` if you need more.
+
+### Customising the allowlist
+
+Set `ALLOWLIST_FILE` to a JSON file whose contents are passed straight to `sanitize-html`. Useful when different consumers need different policies (e.g. a strict subset for user-generated content, a relaxed superset for trusted authoring tools).
+
+```json
+{
+  "allowedTags": ["p", "em", "strong", "a"],
+  "allowedAttributes": { "a": ["href"] },
+  "allowedSchemes": ["https"],
+  "disallowedTagsMode": "discard"
+}
+```
+
+The file is loaded once at startup. Malformed JSON, a missing file, or a non-array `allowedTags` causes the process to exit immediately rather than silently fall back. The default allowlist lives in [`lib/allowlist.js`](lib/allowlist.js) and is exported as `DEFAULT_ALLOWLIST` for reference.
 
 ### Logging and request correlation
 
@@ -108,12 +124,14 @@ Every request is logged as a single JSON line on stdout via [`pino-http`](https:
 ## Project layout
 
 ```
-server.js                 Express app + /validate, /health and /openapi.json handlers. Single source of truth.
+server.js                 Express app + /validate, /health and /openapi.json handlers.
+lib/allowlist.js          Default sanitize-html allowlist and ALLOWLIST_FILE loader.
 openapi.json              OpenAPI 3.1 contract served by /openapi.json.
 tests/validation.test.js  Jest + Supertest suite covering happy path and rejection cases.
 tests/fuzzing.test.js     Property-based tests (fast-check) for sanitizer invariants.
 tests/request-id.test.js  Coverage for the x-request-id middleware.
 tests/openapi.test.js     Coverage for the OpenAPI endpoint and contract.
+tests/allowlist.test.js   Unit + integration coverage for the allowlist loader.
 Dockerfile, .dockerignore Container build.
 ```
 
