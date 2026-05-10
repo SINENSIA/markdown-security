@@ -1,0 +1,166 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "markdown-security",
+    "description": "HTTP microservice that validates and sanitizes Markdown payloads against an HTML-tag allowlist.",
+    "version": "2.0.0",
+    "license": {
+      "name": "MIT",
+      "identifier": "MIT"
+    },
+    "contact": {
+      "name": "SINENSIA",
+      "url": "https://github.com/SINENSIA/markdown-security"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5001",
+      "description": "Local development"
+    }
+  ],
+  "paths": {
+    "/validate": {
+      "post": {
+        "summary": "Validate and sanitize a Markdown payload",
+        "operationId": "validateMarkdown",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ValidateRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validation result. Always returned for well-formed input, regardless of safety.",
+            "headers": {
+              "x-request-id": { "$ref": "#/components/headers/RequestId" }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ValidateResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "The `markdown` field is missing or empty.",
+            "headers": {
+              "x-request-id": { "$ref": "#/components/headers/RequestId" }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body exceeds the 256kb limit.",
+            "headers": {
+              "x-request-id": { "$ref": "#/components/headers/RequestId" }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Liveness probe",
+        "operationId": "health",
+        "responses": {
+          "200": {
+            "description": "The service is up.",
+            "headers": {
+              "x-request-id": { "$ref": "#/components/headers/RequestId" }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HealthResponse" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/openapi.json": {
+      "get": {
+        "summary": "This OpenAPI document.",
+        "operationId": "openapi",
+        "responses": {
+          "200": {
+            "description": "The OpenAPI specification served by this service.",
+            "content": {
+              "application/json": {}
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "headers": {
+      "RequestId": {
+        "description": "Echoes the incoming x-request-id when it matches `^[a-zA-Z0-9_.-]{1,128}$`, otherwise a server-generated UUID.",
+        "schema": { "type": "string" }
+      }
+    },
+    "schemas": {
+      "ValidateRequest": {
+        "type": "object",
+        "required": ["markdown"],
+        "additionalProperties": false,
+        "properties": {
+          "markdown": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Raw Markdown input. The total request body must not exceed 256kb."
+          }
+        }
+      },
+      "ValidateResponse": {
+        "type": "object",
+        "required": ["safe", "message", "sanitized", "frontMatter"],
+        "additionalProperties": false,
+        "properties": {
+          "safe": {
+            "type": "boolean",
+            "description": "True only if sanitization made no changes to the body and the front matter (if present) contained no HTML-like content."
+          },
+          "message": {
+            "type": "string",
+            "enum": ["Markdown is safe", "Markdown contains unsafe content"]
+          },
+          "sanitized": {
+            "type": "string",
+            "description": "The Markdown body, post-sanitization. Never includes the front-matter block."
+          },
+          "frontMatter": {
+            "type": ["string", "null"],
+            "description": "Raw YAML between the leading `---` markers. Returned verbatim (NOT sanitized). Null when the input has no front matter."
+          }
+        }
+      },
+      "HealthResponse": {
+        "type": "object",
+        "required": ["status"],
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ok"
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "required": ["safe", "error"],
+        "additionalProperties": false,
+        "properties": {
+          "safe": { "type": "boolean", "const": false },
+          "error": { "type": "string" }
+        }
+      }
+    }
+  }
+}

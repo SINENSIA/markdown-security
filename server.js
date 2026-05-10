@@ -3,6 +3,7 @@ const crypto = require('node:crypto');
 const sanitizeHtml = require('sanitize-html');
 const pino = require('pino');
 const pinoHttp = require('pino-http');
+const openapi = require('./openapi.json');
 
 const REQUEST_ID_RE = /^[a-zA-Z0-9_.-]{1,128}$/;
 const FRONT_MATTER_RE = /^---\n([\s\S]*?)\n---\n/;
@@ -61,6 +62,10 @@ const validateBody = (body) => {
 
 app.get('/health', (_req, res) => {
     res.status(200).json({ status: 'ok' });
+});
+
+app.get('/openapi.json', (_req, res) => {
+    res.status(200).json(openapi);
 });
 
 app.post('/validate', (req, res) => {
