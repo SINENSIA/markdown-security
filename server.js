@@ -5,7 +5,6 @@ const app = express();
 app.set('query parser', 'simple');
 app.use(express.json({ limit: '256kb' }));
 
-const PROHIBITED_TAGS = ['script', 'iframe', 'object', 'embed', 'form', 'meta', 'link'];
 const FRONT_MATTER_RE = /^---\n([\s\S]*?)\n---\n/;
 const HTML_LIKE = /<\s*[a-zA-Z!/]/;
 
@@ -30,6 +29,10 @@ const validateBody = (body) => {
 
     return { safe: body.trim() === sanitized.trim(), sanitized };
 };
+
+app.get('/health', (_req, res) => {
+    res.status(200).json({ status: 'ok' });
+});
 
 app.post('/validate', (req, res) => {
     let { markdown } = req.body;
@@ -57,12 +60,11 @@ app.post('/validate', (req, res) => {
 });
 
 
-// Solo inicia el servidor si este script es ejecutado directamente
 if (require.main === module) {
     const PORT = process.env.PORT || 5001;
     app.listen(PORT, () => {
-        console.log(`Servidor escuchando en http://localhost:${PORT}`);
+        console.log(`Server listening on http://localhost:${PORT}`);
     });
 }
 
-module.exports = app; // Exportamos la app para los tests
+module.exports = app;
