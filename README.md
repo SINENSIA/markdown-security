@@ -2,7 +2,7 @@
 
 A small HTTP microservice that validates and sanitizes Markdown payloads against an HTML-tag allowlist. It is meant to sit between an untrusted producer (form, CMS, API caller) and any consumer that will render Markdown as HTML, so the consumer can rely on the body being free of script-bearing or otherwise dangerous tags.
 
-The service is a single Express endpoint backed by [`sanitize-html`](https://www.npmjs.com/package/sanitize-html). It does not render Markdown to HTML; it inspects raw Markdown for embedded HTML, strips anything outside the allowlist, and tells the caller whether the input was modified.
+The service exposes a validation endpoint backed by [`sanitize-html`](https://www.npmjs.com/package/sanitize-html), plus a liveness probe. It does not render Markdown to HTML; it inspects raw Markdown for embedded HTML, strips anything outside the allowlist, and tells the caller whether the input was modified.
 
 ## How it works
 
@@ -23,6 +23,8 @@ The service is a single Express endpoint backed by [`sanitize-html`](https://www
 - `message` is a human-readable summary.
 
 The status code is always `200` for well-formed requests, and `400` when the `markdown` field is missing or empty.
+
+`GET /health` returns `200` with `{ "status": "ok" }`. It is intended for liveness probes (Docker `HEALTHCHECK`, Kubernetes, load balancers) and does not exercise the sanitizer.
 
 ### Allowlist
 
@@ -74,7 +76,7 @@ docker build -t markdown-security .
 docker run --rm -p 5001:5001 markdown-security
 ```
 
-The image is built on `node:24-alpine`, runs as the unprivileged `node` user, and ships a `HEALTHCHECK` that exercises `/validate`. The bundled `.dockerignore` keeps `.git`, `.env`, tests and CI artefacts out of the image.
+The image is built on `node:24-alpine`, runs as the unprivileged `node` user, and ships a `HEALTHCHECK` that hits `/health`. The bundled `.dockerignore` keeps `.git`, `.env`, tests and CI artefacts out of the image.
 
 ## Configuration
 
@@ -97,7 +99,7 @@ The JSON body limit is fixed at `256kb`. Markdown larger than that is rejected b
 ## Project layout
 
 ```
-server.js                 Express app + /validate handler. Single source of truth.
+server.js                 Express app + /validate and /health handlers. Single source of truth.
 tests/validation.test.js  Jest + Supertest suite covering happy path and rejection cases.
 Dockerfile, .dockerignore Container build.
 ```

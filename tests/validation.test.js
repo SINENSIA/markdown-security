@@ -1,11 +1,11 @@
 const request = require("supertest");
-const app = require("../server"); // Importa la app sin levantar el servidor
+const app = require("../server");
 
 describe("Markdown Validator API", () => {
-  it("Debe validar correctamente un Markdown seguro", async () => {
+  it("validates a safe Markdown payload", async () => {
     const response = await request(app)
       .post("/validate")
-      .send({ markdown: "# Título\n\nEste es un _ejemplo_ de Markdown." })
+      .send({ markdown: "# Title\n\nThis is an _example_ of Markdown." })
       .set("Content-Type", "application/json");
 
     expect(response.status).toBe(200);
@@ -14,7 +14,7 @@ describe("Markdown Validator API", () => {
     expect(response.body).toHaveProperty("frontMatter", null);
   });
 
-  it("Debe manejar correctamente un Markdown vacío", async () => {
+  it("rejects an empty Markdown payload", async () => {
     const response = await request(app)
       .post("/validate")
       .send({ markdown: "" })
@@ -24,7 +24,7 @@ describe("Markdown Validator API", () => {
     expect(response.body).toHaveProperty("error");
   });
 
-  it("Debe devolver un error si el campo 'markdown' falta en el body", async () => {
+  it("rejects requests missing the 'markdown' field", async () => {
     const response = await request(app)
       .post("/validate")
       .send({})
@@ -34,7 +34,7 @@ describe("Markdown Validator API", () => {
     expect(response.body).toHaveProperty("error");
   });
 
-  it("Debe detectar Markdown inseguro", async () => {
+  it("flags unsafe Markdown", async () => {
     const response = await request(app)
       .post("/validate")
       .send({ markdown: "<script>alert('XSS')</script>" })
@@ -45,8 +45,62 @@ describe("Markdown Validator API", () => {
     expect(response.body).toHaveProperty("sanitized");
   });
 
+  it("rejects payloads larger than the 256kb body limit", async () => {
+    const oversized = "a".repeat(300 * 1024);
+    const response = await request(app)
+      .post("/validate")
+      .send({ markdown: oversized })
+      .set("Content-Type", "application/json");
+
+    expect(response.status).toBe(413);
+  });
+
+  describe("Health endpoint", () => {
+    it("returns 200 with status ok", async () => {
+      const response = await request(app).get("/health");
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ status: "ok" });
+    });
+  });
+
+  describe("URL schemes", () => {
+    it("strips javascript: hrefs", async () => {
+      const response = await request(app)
+        .post("/validate")
+        .send({ markdown: '<a href="javascript:alert(1)">x</a>' })
+        .set("Content-Type", "application/json");
+
+      expect(response.status).toBe(200);
+      expect(response.body.safe).toBe(false);
+      expect(response.body.sanitized.toLowerCase()).not.toContain("javascript:");
+    });
+
+    it("strips data: hrefs", async () => {
+      const response = await request(app)
+        .post("/validate")
+        .send({ markdown: '<a href="data:text/html,hi">x</a>' })
+        .set("Content-Type", "application/json");
+
+      expect(response.status).toBe(200);
+      expect(response.body.safe).toBe(false);
+      expect(response.body.sanitized.toLowerCase()).not.toContain("data:");
+    });
+
+    it("strips vbscript: hrefs", async () => {
+      const response = await request(app)
+        .post("/validate")
+        .send({ markdown: '<a href="vbscript:msgbox(1)">x</a>' })
+        .set("Content-Type", "application/json");
+
+      expect(response.status).toBe(200);
+      expect(response.body.safe).toBe(false);
+      expect(response.body.sanitized.toLowerCase()).not.toContain("vbscript:");
+    });
+  });
+
   describe("Front matter", () => {
-    it("Marca como inseguro un front-matter que contiene HTML", async () => {
+    it("flags a front matter containing HTML as unsafe", async () => {
       const markdown = "---\ntitle: <script>alert(1)</script>\n---\n# hello\n";
       const response = await request(app)
         .post("/validate")
@@ -56,12 +110,11 @@ describe("Markdown Validator API", () => {
       expect(response.status).toBe(200);
       expect(response.body.safe).toBe(false);
       expect(response.body.frontMatter).toBe("title: <script>alert(1)</script>");
-      // El campo sanitized NO debe contener el front-matter ni el script.
       expect(response.body.sanitized).not.toMatch(/<script/i);
       expect(response.body.sanitized).not.toMatch(/^---/);
     });
 
-    it("Acepta un front-matter con YAML legítimo", async () => {
+    it("accepts a front matter with legitimate YAML", async () => {
       const markdown = "---\ntitle: My post\ntags: [a, b]\n---\n# hello\n";
       const response = await request(app)
         .post("/validate")
@@ -74,7 +127,7 @@ describe("Markdown Validator API", () => {
       expect(response.body.sanitized).not.toMatch(/^---/);
     });
 
-    it("Devuelve frontMatter:null cuando no hay front-matter", async () => {
+    it("returns frontMatter:null when no front matter is present", async () => {
       const response = await request(app)
         .post("/validate")
         .send({ markdown: "# Just a body\n" })
@@ -84,7 +137,7 @@ describe("Markdown Validator API", () => {
       expect(response.body.frontMatter).toBeNull();
     });
 
-    it("Marca como inseguro si el body es inseguro aunque el front-matter sea limpio", async () => {
+    it("flags as unsafe when the body is unsafe even with a clean front matter", async () => {
       const markdown = "---\ntitle: ok\n---\n<script>alert(1)</script>\n";
       const response = await request(app)
         .post("/validate")
@@ -97,8 +150,7 @@ describe("Markdown Validator API", () => {
       expect(response.body.sanitized).not.toMatch(/<script/i);
     });
 
-    it("No reinyecta el front-matter dentro de sanitized", async () => {
-      // Regresión del bug previo: el front-matter se concatenaba al sanitized.
+    it("does not re-inject the front matter into sanitized", async () => {
       const markdown = "---\ntitle: <iframe src=evil></iframe>\n---\n# hello\n";
       const response = await request(app)
         .post("/validate")
