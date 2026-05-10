@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-05-10
+
+### Added
+- Strict request-body validation against the OpenAPI `ValidateRequest` schema, powered by `ajv`. `POST /validate` now returns a structured 400 with per-field violations for missing/extra fields, wrong types, and `minLength` violations.
+- `details` array on 400 responses (`[{ field, message }, ...]`). Documented in the OpenAPI `ErrorResponse` schema.
+
+### Changed
+- The 400 error message for invalid input is now `"Invalid request"`. The previous condition (missing/empty `markdown`) is still rejected, but through the schema validator rather than an ad-hoc check.
+- 2.1.0 documented `additionalProperties: false` and `type: string` in `openapi.json` without enforcing them. 2.2.0 closes that gap: clients that already conformed to the published schema are unaffected; clients that sent extra fields or coerced types will start receiving 400s with details.
+
 ## [2.1.0] - 2026-05-10
 
 ### Added
@@ -46,6 +56,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `qs` array-limit DoS bypass mitigated via `app.set('query parser', 'simple')` (`GHSA-w7fw-mjwx-w883`, `GHSA-6rw7-vpxm-498p`).
 - Container hardened: runs as the unprivileged `node` user, ships a `HEALTHCHECK`, includes a `.dockerignore`.
 
-[Unreleased]: https://github.com/SINENSIA/markdown-security/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/SINENSIA/markdown-security/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/SINENSIA/markdown-security/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/SINENSIA/markdown-security/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/SINENSIA/markdown-security/releases/tag/v2.0.0

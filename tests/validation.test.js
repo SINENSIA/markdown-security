@@ -45,6 +45,70 @@ describe("Markdown Validator API", () => {
     expect(response.body).toHaveProperty("sanitized");
   });
 
+  describe("Schema validation", () => {
+    it("rejects unexpected fields in the request body", async () => {
+      const response = await request(app)
+        .post("/validate")
+        .send({ markdown: "# ok", extra: "nope" })
+        .set("Content-Type", "application/json");
+
+      expect(response.status).toBe(400);
+      expect(response.body.safe).toBe(false);
+      expect(response.body.error).toBe("Invalid request");
+      expect(Array.isArray(response.body.details)).toBe(true);
+      expect(response.body.details[0]).toHaveProperty("message");
+    });
+
+    it("rejects a non-string markdown field", async () => {
+      const response = await request(app)
+        .post("/validate")
+        .send({ markdown: 123 })
+        .set("Content-Type", "application/json");
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Invalid request");
+      expect(response.body.details).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ message: expect.stringMatching(/string/i) }),
+        ])
+      );
+    });
+
+    it("rejects markdown:null", async () => {
+      const response = await request(app)
+        .post("/validate")
+        .send({ markdown: null })
+        .set("Content-Type", "application/json");
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Invalid request");
+    });
+
+    it("rejects markdown as an array", async () => {
+      const response = await request(app)
+        .post("/validate")
+        .send({ markdown: ["# hi"] })
+        .set("Content-Type", "application/json");
+
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe("Invalid request");
+    });
+
+    it("reports the missing field in details when markdown is absent", async () => {
+      const response = await request(app)
+        .post("/validate")
+        .send({})
+        .set("Content-Type", "application/json");
+
+      expect(response.status).toBe(400);
+      expect(response.body.details).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ field: "/markdown" }),
+        ])
+      );
+    });
+  });
+
   it("rejects payloads larger than the 256kb body limit", async () => {
     const oversized = "a".repeat(300 * 1024);
     const response = await request(app)

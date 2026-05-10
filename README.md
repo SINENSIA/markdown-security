@@ -22,7 +22,7 @@ The service exposes a validation endpoint backed by [`sanitize-html`](https://ww
 - `frontMatter` is the raw YAML between the `---` markers, or `null` if no front matter was present. **It is returned untouched** — see the front-matter section below.
 - `message` is a human-readable summary.
 
-The status code is always `200` for well-formed requests, and `400` when the `markdown` field is missing or empty.
+The status code is `200` for any request that conforms to the published JSON Schema, and `400` when the body fails schema validation (missing `markdown`, wrong type, unexpected fields, etc.). 400 responses include a `details` array listing each per-field violation.
 
 `GET /health` returns `200` with `{ "status": "ok" }`. It is intended for liveness probes (Docker `HEALTHCHECK`, Kubernetes, load balancers) and does not exercise the sanitizer.
 
@@ -101,8 +101,9 @@ Every request is logged as a single JSON line on stdout via [`pino-http`](https:
 - **Body size cap.** `express.json({ limit: '256kb' })` is the first line of defence against payload-amplification attacks against `sanitize-html`.
 - **No rate limiting or auth.** This service expects to live behind a gateway that handles those concerns. If you expose it directly, put a reverse proxy in front.
 - **Property-based fuzzing.** `tests/fuzzing.test.js` runs `fast-check` against `/validate` to exercise invariants (no dangerous tags ever leak to `sanitized`, sanitization is idempotent, front matter never appears inside `sanitized`). Hundreds of randomized payloads per release.
+- **Schema-validated boundary.** `POST /validate` rejects any body that does not conform to the OpenAPI `ValidateRequest` schema (`ajv`). Extra fields, wrong types, and missing/empty values are caught before reaching the sanitizer, with structured `details` per violation.
 
-`npm audit` reports zero vulnerabilities at the time of writing (May 2026, against `express@5`, `sanitize-html@2.17`, `pino@10`, `pino-http@11`, `jest@30`, `supertest@7.2`, `fast-check@4`).
+`npm audit` reports zero vulnerabilities at the time of writing (May 2026, against `express@5`, `sanitize-html@2.17`, `pino@10`, `pino-http@11`, `ajv@8`, `jest@30`, `supertest@7.2`, `fast-check@4`).
 
 ## Project layout
 

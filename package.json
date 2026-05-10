@@ -1,6 +1,6 @@
 {
   "name": "markdown-security",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "main": "server.js",
   "directories": {
     "test": "tests"
@@ -25,6 +25,7 @@
     "url": "https://github.com/SINENSIA/markdown-security.git"
   },
   "dependencies": {
+    "ajv": "^8.20.0",
     "express": "^5.2.1",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",

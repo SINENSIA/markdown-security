@@ -3,7 +3,7 @@
   "info": {
     "title": "markdown-security",
     "description": "HTTP microservice that validates and sanitizes Markdown payloads against an HTML-tag allowlist.",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "license": {
       "name": "MIT",
       "identifier": "MIT"
@@ -45,7 +45,7 @@
             }
           },
           "400": {
-            "description": "The `markdown` field is missing or empty.",
+            "description": "The request body fails schema validation (missing/invalid `markdown` field, unexpected fields, etc.).",
             "headers": {
               "x-request-id": { "$ref": "#/components/headers/RequestId" }
             },
@@ -158,7 +158,20 @@
         "additionalProperties": false,
         "properties": {
           "safe": { "type": "boolean", "const": false },
-          "error": { "type": "string" }
+          "error": { "type": "string" },
+          "details": {
+            "type": "array",
+            "description": "Per-field validation errors when the request fails JSON Schema validation. The array reports the first violation found rather than all of them — exhaustive enumeration is intentionally disabled to avoid DoS amplification on adversarial inputs.",
+            "items": {
+              "type": "object",
+              "required": ["field", "message"],
+              "additionalProperties": false,
+              "properties": {
+                "field": { "type": "string" },
+                "message": { "type": "string" }
+              }
+            }
+          }
         }
       }
     }

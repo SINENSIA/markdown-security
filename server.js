@@ -3,7 +3,11 @@ const crypto = require('node:crypto');
 const sanitizeHtml = require('sanitize-html');
 const pino = require('pino');
 const pinoHttp = require('pino-http');
+const Ajv = require('ajv');
 const openapi = require('./openapi.json');
+
+const ajv = new Ajv({ strict: false });
+const validateRequest = ajv.compile(openapi.components.schemas.ValidateRequest);
 
 const REQUEST_ID_RE = /^[a-zA-Z0-9_.-]{1,128}$/;
 const FRONT_MATTER_RE = /^---\n([\s\S]*?)\n---\n/;
@@ -69,13 +73,22 @@ app.get('/openapi.json', (_req, res) => {
 });
 
 app.post('/validate', (req, res) => {
-    let { markdown } = req.body;
-
-    if (!markdown) {
-        return res.status(400).json({ safe: false, error: "No Markdown provided" });
+    if (!validateRequest(req.body || {})) {
+        return res.status(400).json({
+            safe: false,
+            error: 'Invalid request',
+            details: validateRequest.errors.map((e) => ({
+                field:
+                    e.instancePath ||
+                    (e.params && e.params.missingProperty
+                        ? `/${e.params.missingProperty}`
+                        : '/'),
+                message: e.message,
+            })),
+        });
     }
 
-    markdown = String(markdown);
+    const { markdown } = req.body;
 
     const fmMatch = markdown.match(FRONT_MATTER_RE);
     const frontMatter = fmMatch ? fmMatch[1] : null;
