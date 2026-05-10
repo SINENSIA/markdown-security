@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 - `ALLOWLIST_FILE` env var: when set, the contents of the referenced JSON file replace the built-in `sanitize-html` configuration. Lets different consumers run with different policies without forking. Malformed input fails fast at startup.
 - `lib/allowlist.js` module exporting `DEFAULT_ALLOWLIST` (the previous hardcoded config) and `loadAllowlist({ path })` for tests and programmatic use.
+- `RATE_LIMIT_RPM` env var: opt-in per-IP rate limiting on `POST /validate` (requests per minute). Disabled by default. `/health` and `/openapi.json` are never rate-limited. 429 responses include `retry-after` and `ratelimit-*` headers and are documented in the OpenAPI spec.
 
 ## [2.2.0] - 2026-05-10
 

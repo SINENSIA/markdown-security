@@ -87,6 +87,7 @@ The image is built on `node:24-alpine`, runs as the unprivileged `node` user, an
 | `PORT`           | `5001`  | TCP port the HTTP server binds to. |
 | `LOG_LEVEL`      | `info`  | `pino` log level (`trace`, `debug`, `info`, `warn`, `error`, `fatal`, `silent`). Forced to `silent` under `NODE_ENV=test`. |
 | `ALLOWLIST_FILE` | _unset_ | Path to a JSON file with a custom `sanitize-html` configuration. When set, replaces the built-in allowlist wholesale. See [Customising the allowlist](#customising-the-allowlist). |
+| `RATE_LIMIT_RPM` | _unset_ | Positive integer. When set, enables per-IP rate limiting on `POST /validate` at this many requests per minute. Disabled by default. See [Rate limiting](#rate-limiting). |
 
 The JSON body limit is fixed at `256kb`. Markdown larger than that is rejected by Express with a `413` before reaching the handler. Adjust `express.json({ limit: ... })` in `server.js` if you need more.
 
@@ -105,6 +106,14 @@ Set `ALLOWLIST_FILE` to a JSON file whose contents are passed straight to `sanit
 
 The file is loaded once at startup. Malformed JSON, a missing file, or a non-array `allowedTags` causes the process to exit immediately rather than silently fall back. The default allowlist lives in [`lib/allowlist.js`](lib/allowlist.js) and is exported as `DEFAULT_ALLOWLIST` for reference.
 
+### Rate limiting
+
+Set `RATE_LIMIT_RPM` to a positive integer to enable per-IP rate limiting on `POST /validate`. The window is 60 seconds and the limit applies only to `/validate` — `/health` and `/openapi.json` are always reachable so that probes and clients can introspect the service even under load. Exceeding the limit returns `429 Too Many Requests` with `retry-after` and `ratelimit-*` headers (RFC 9462).
+
+The limiter keys on `req.ip`. If the service is deployed behind a reverse proxy, configure `app.set('trust proxy', ...)` in `server.js` so the limiter sees the real client address rather than the proxy. The service ships with no `trust proxy` configuration to avoid header-injection in untrusted topologies.
+
+Invalid values (`0`, negative, non-integer) cause the process to exit at startup rather than silently disable.
+
 ### Logging and request correlation
 
 Every request is logged as a single JSON line on stdout via [`pino-http`](https://github.com/pinojs/pino-http). Each request is tagged with an id surfaced in the `x-request-id` response header and included in every log line. If the caller sends an `x-request-id` header that matches `^[a-zA-Z0-9_.-]{1,128}$`, the service reuses it; otherwise a fresh UUID is generated. Use this id to correlate a client trace with the server log for a given request.
@@ -115,11 +124,11 @@ Every request is logged as a single JSON line on stdout via [`pino-http`](https:
 - **Front matter is exposed raw, not trusted.** It is returned in its own `frontMatter` field, never inside `sanitized`. A coarse HTML-like check decides `safe`, but the consumer must sanitize any front-matter value it intends to render as HTML.
 - **`query parser` is set to `simple`.** Express's default `qs`-based parser has shipped two array-limit DoS bypasses (`GHSA-w7fw-mjwx-w883`, `GHSA-6rw7-vpxm-498p`); the simple parser is not affected. Do not change this without re-reviewing those advisories.
 - **Body size cap.** `express.json({ limit: '256kb' })` is the first line of defence against payload-amplification attacks against `sanitize-html`.
-- **No rate limiting or auth.** This service expects to live behind a gateway that handles those concerns. If you expose it directly, put a reverse proxy in front.
+- **Rate limiting is opt-in via `RATE_LIMIT_RPM`** and disabled by default. The service still expects to live behind a gateway for auth and TLS; the in-process limiter is defence-in-depth for `/validate`, not a substitute for an upstream policy layer.
 - **Property-based fuzzing.** `tests/fuzzing.test.js` runs `fast-check` against `/validate` to exercise invariants (no dangerous tags ever leak to `sanitized`, sanitization is idempotent, front matter never appears inside `sanitized`). Hundreds of randomized payloads per release.
 - **Schema-validated boundary.** `POST /validate` rejects any body that does not conform to the OpenAPI `ValidateRequest` schema (`ajv`). Extra fields, wrong types, and missing/empty values are caught before reaching the sanitizer, with structured `details` per violation.
 
-`npm audit` reports zero vulnerabilities at the time of writing (May 2026, against `express@5`, `sanitize-html@2.17`, `pino@10`, `pino-http@11`, `ajv@8`, `jest@30`, `supertest@7.2`, `fast-check@4`).
+`npm audit` reports zero vulnerabilities at the time of writing (May 2026, against `express@5`, `sanitize-html@2.17`, `pino@10`, `pino-http@11`, `ajv@8`, `express-rate-limit@8`, `jest@30`, `supertest@7.2`, `fast-check@4`).
 
 ## Project layout
 
@@ -132,6 +141,7 @@ tests/fuzzing.test.js     Property-based tests (fast-check) for sanitizer invari
 tests/request-id.test.js  Coverage for the x-request-id middleware.
 tests/openapi.test.js     Coverage for the OpenAPI endpoint and contract.
 tests/allowlist.test.js   Unit + integration coverage for the allowlist loader.
+tests/rate-limit.test.js  Coverage for the RATE_LIMIT_RPM middleware on /validate.
 Dockerfile, .dockerignore Container build.
 ```
 

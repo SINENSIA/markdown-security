@@ -37,11 +37,16 @@ describe("OpenAPI specification", () => {
     ]);
   });
 
-  it("declares /validate 200, 400 and 413 responses", async () => {
+  it("declares /validate 200, 400, 413 and 429 responses", async () => {
     const res = await request(app).get("/openapi.json");
     const responses = res.body.paths["/validate"].post.responses;
 
-    expect(Object.keys(responses).sort()).toEqual(["200", "400", "413"]);
+    expect(Object.keys(responses).sort()).toEqual([
+      "200",
+      "400",
+      "413",
+      "429",
+    ]);
   });
 
   it("keeps info.version in sync with package.json", async () => {
