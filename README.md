@@ -127,6 +127,7 @@ Every request is logged as a single JSON line on stdout via [`pino-http`](https:
 - **Rate limiting is opt-in via `RATE_LIMIT_RPM`** and disabled by default. The service still expects to live behind a gateway for auth and TLS; the in-process limiter is defence-in-depth for `/validate`, not a substitute for an upstream policy layer.
 - **Property-based fuzzing.** `tests/fuzzing.test.js` runs `fast-check` against `/validate` to exercise invariants (no dangerous tags ever leak to `sanitized`, sanitization is idempotent, front matter never appears inside `sanitized`). Hundreds of randomized payloads per release.
 - **Schema-validated boundary.** `POST /validate` rejects any body that does not conform to the OpenAPI `ValidateRequest` schema (`ajv`). Extra fields, wrong types, and missing/empty values are caught before reaching the sanitizer, with structured `details` per violation.
+- **SBOM attached to every release.** A CycloneDX 1.6 JSON Software Bill of Materials (`sbom.cdx.json`) is generated from the production lockfile and uploaded as a release asset by `.github/workflows/sbom.yml`. Run `npm run sbom` to produce one locally.
 
 `npm audit` reports zero vulnerabilities at the time of writing (May 2026, against `express@5`, `sanitize-html@2.17`, `pino@10`, `pino-http@11`, `ajv@8`, `express-rate-limit@8`, `jest@30`, `supertest@7.2`, `fast-check@4`).
 
