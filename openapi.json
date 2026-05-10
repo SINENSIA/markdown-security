@@ -60,6 +60,21 @@
             "headers": {
               "x-request-id": { "$ref": "#/components/headers/RequestId" }
             }
+          },
+          "429": {
+            "description": "Rate limit exceeded. Only returned when the service is started with a positive `RATE_LIMIT_RPM` env var. Includes `retry-after` and `ratelimit-*` headers.",
+            "headers": {
+              "x-request-id": { "$ref": "#/components/headers/RequestId" },
+              "retry-after": {
+                "description": "Seconds the client should wait before retrying.",
+                "schema": { "type": "integer" }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" }
+              }
+            }
           }
         }
       }
