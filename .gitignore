@@ -27,6 +27,9 @@ tmp/
 .tmp/
 *.tgz
 
+# Generated artefacts
+sbom.cdx.json
+
 # OS noise
 .DS_Store
 Thumbs.db
