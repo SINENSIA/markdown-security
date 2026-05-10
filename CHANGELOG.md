@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+- `ALLOWLIST_FILE` env var: when set, the contents of the referenced JSON file replace the built-in `sanitize-html` configuration. Lets different consumers run with different policies without forking. Malformed input fails fast at startup.
+- `lib/allowlist.js` module exporting `DEFAULT_ALLOWLIST` (the previous hardcoded config) and `loadAllowlist({ path })` for tests and programmatic use.
+
 ## [2.2.0] - 2026-05-10
 
 ### Added
