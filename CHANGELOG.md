@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-05-10
+
 ### Added
 - `ALLOWLIST_FILE` env var: when set, the contents of the referenced JSON file replace the built-in `sanitize-html` configuration. Lets different consumers run with different policies without forking. Malformed input fails fast at startup.
 - `lib/allowlist.js` module exporting `DEFAULT_ALLOWLIST` (the previous hardcoded config) and `loadAllowlist({ path })` for tests and programmatic use.
@@ -62,7 +64,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `qs` array-limit DoS bypass mitigated via `app.set('query parser', 'simple')` (`GHSA-w7fw-mjwx-w883`, `GHSA-6rw7-vpxm-498p`).
 - Container hardened: runs as the unprivileged `node` user, ships a `HEALTHCHECK`, includes a `.dockerignore`.
 
-[Unreleased]: https://github.com/SINENSIA/markdown-security/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/SINENSIA/markdown-security/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/SINENSIA/markdown-security/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/SINENSIA/markdown-security/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/SINENSIA/markdown-security/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/SINENSIA/markdown-security/releases/tag/v2.0.0
