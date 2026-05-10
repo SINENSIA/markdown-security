@@ -29,7 +29,8 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm run sbom
+      - name: Generate SBOM
+        run: npx --yes @cyclonedx/cyclonedx-npm@^4 --omit dev --output-file sbom.cdx.json
       - name: Attach SBOM to release
         env:
           GH_TOKEN: ${{ github.token }}

@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+- The `SBOM` workflow now invokes `@cyclonedx/cyclonedx-npm` via `npx` (pinned to `^4`) instead of `npm run sbom`. This decouples the release-time SBOM generation from the local script, so the workflow can backfill SBOMs against historical tags that pre-date the script.
+
 ## [2.3.0] - 2026-05-10
 
 ### Added
