@@ -161,7 +161,7 @@
           "error": { "type": "string" },
           "details": {
             "type": "array",
-            "description": "Per-field validation errors when the request fails JSON Schema validation. Absent when the rejection has no per-field detail.",
+            "description": "Per-field validation errors when the request fails JSON Schema validation. The array reports the first violation found rather than all of them — exhaustive enumeration is intentionally disabled to avoid DoS amplification on adversarial inputs.",
             "items": {
               "type": "object",
               "required": ["field", "message"],

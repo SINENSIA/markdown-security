@@ -6,7 +6,7 @@ const pinoHttp = require('pino-http');
 const Ajv = require('ajv');
 const openapi = require('./openapi.json');
 
-const ajv = new Ajv({ allErrors: true, strict: false });
+const ajv = new Ajv({ strict: false });
 const validateRequest = ajv.compile(openapi.components.schemas.ValidateRequest);
 
 const REQUEST_ID_RE = /^[a-zA-Z0-9_.-]{1,128}$/;
