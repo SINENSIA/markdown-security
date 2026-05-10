@@ -1,6 +1,6 @@
 {
   "name": "markdown-security",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "main": "server.js",
   "directories": {
     "test": "tests"

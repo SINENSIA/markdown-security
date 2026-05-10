@@ -3,7 +3,7 @@
   "info": {
     "title": "markdown-security",
     "description": "HTTP microservice that validates and sanitizes Markdown payloads against an HTML-tag allowlist.",
-    "version": "2.2.0",
+    "version": "2.3.0",
     "license": {
       "name": "MIT",
       "identifier": "MIT"
