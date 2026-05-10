@@ -116,6 +116,10 @@ tests/openapi.test.js     Coverage for the OpenAPI endpoint and contract.
 Dockerfile, .dockerignore Container build.
 ```
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the version history.
+
 ## License
 
 MIT - see [LICENSE](LICENSE).
