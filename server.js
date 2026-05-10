@@ -6,10 +6,11 @@ app.set('query parser', 'simple');
 app.use(express.json({ limit: '256kb' }));
 
 const PROHIBITED_TAGS = ['script', 'iframe', 'object', 'embed', 'form', 'meta', 'link'];
+const FRONT_MATTER_RE = /^---\n([\s\S]*?)\n---\n/;
+const HTML_LIKE = /<\s*[a-zA-Z!/]/;
 
-const validateMarkdown = (markdown) => {
-    // Sanitizar el contenido antes de verificar seguridad
-    const sanitized = sanitizeHtml(markdown, {
+const validateBody = (body) => {
+    const sanitized = sanitizeHtml(body, {
         allowedTags: [
             'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'blockquote', 'ul', 'ol', 'li', 'br', 'hr',
             'strong', 'em', 'u', 's', 'b', 'i', 'mark', 'sub', 'sup',
@@ -24,13 +25,10 @@ const validateMarkdown = (markdown) => {
             'code': ['class']
         },
         allowedSchemes: ['http', 'https', 'mailto'],
-        disallowedTagsMode: 'discard' // Esto elimina las etiquetas no permitidas
+        disallowedTagsMode: 'discard'
     });
 
-    // Determinar si el contenido original ha sido modificado
-    const isSafe = markdown.trim() === sanitized.trim();
-
-    return { safe: isSafe, sanitized };
+    return { safe: body.trim() === sanitized.trim(), sanitized };
 };
 
 app.post('/validate', (req, res) => {
@@ -41,18 +39,20 @@ app.post('/validate', (req, res) => {
     }
 
     markdown = String(markdown);
-    let frontMatter = markdown.match(/^---\n([\s\S]*?)\n---\n/)?.[0] || '';
-    markdown = markdown.replace(/^---\n([\s\S]*?)\n---\n/, '');
 
-    // Validar contenido después de sanitizar
-    const validationResult = validateMarkdown(markdown);
+    const fmMatch = markdown.match(FRONT_MATTER_RE);
+    const frontMatter = fmMatch ? fmMatch[1] : null;
+    const body = fmMatch ? markdown.slice(fmMatch[0].length) : markdown;
 
-    let finalMarkdown = frontMatter ? `${frontMatter}\n${validationResult.sanitized}` : validationResult.sanitized;
+    const bodyResult = validateBody(body);
+    const frontMatterClean = frontMatter === null || !HTML_LIKE.test(frontMatter);
+    const safe = bodyResult.safe && frontMatterClean;
 
     res.status(200).json({
-        safe: validationResult.safe,
-        message: validationResult.safe ? "Markdown is safe" : "Markdown contains unsafe content",
-        sanitized: finalMarkdown
+        safe,
+        message: safe ? "Markdown is safe" : "Markdown contains unsafe content",
+        sanitized: bodyResult.sanitized,
+        frontMatter
     });
 });
 
