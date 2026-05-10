@@ -26,6 +26,8 @@ The status code is always `200` for well-formed requests, and `400` when the `ma
 
 `GET /health` returns `200` with `{ "status": "ok" }`. It is intended for liveness probes (Docker `HEALTHCHECK`, Kubernetes, load balancers) and does not exercise the sanitizer.
 
+`GET /openapi.json` returns the OpenAPI 3.1 specification of this service, including request/response schemas, the documented headers, and all status codes. Point a Swagger UI / Postman / Stoplight at it to explore or generate clients.
+
 ### Allowlist
 
 Allowed tags: headings `h1`-`h6`, paragraphs and breaks (`p`, `br`, `hr`), lists (`ul`, `ol`, `li`, `dl`, `dt`, `dd`), text emphasis (`strong`, `em`, `u`, `s`, `b`, `i`, `mark`, `sub`, `sup`), code blocks (`pre`, `code`, `kbd`, `samp`), tables (`table`, `thead`, `tbody`, `tr`, `td`, `th`), blockquotes, images (`img`), and links (`a`).
@@ -105,10 +107,12 @@ Every request is logged as a single JSON line on stdout via [`pino-http`](https:
 ## Project layout
 
 ```
-server.js                 Express app + /validate and /health handlers. Single source of truth.
+server.js                 Express app + /validate, /health and /openapi.json handlers. Single source of truth.
+openapi.json              OpenAPI 3.1 contract served by /openapi.json.
 tests/validation.test.js  Jest + Supertest suite covering happy path and rejection cases.
 tests/fuzzing.test.js     Property-based tests (fast-check) for sanitizer invariants.
 tests/request-id.test.js  Coverage for the x-request-id middleware.
+tests/openapi.test.js     Coverage for the OpenAPI endpoint and contract.
 Dockerfile, .dockerignore Container build.
 ```
 
