@@ -93,6 +93,7 @@ The JSON body limit is fixed at `256kb`. Markdown larger than that is rejected b
 - **`query parser` is set to `simple`.** Express's default `qs`-based parser has shipped two array-limit DoS bypasses (`GHSA-w7fw-mjwx-w883`, `GHSA-6rw7-vpxm-498p`); the simple parser is not affected. Do not change this without re-reviewing those advisories.
 - **Body size cap.** `express.json({ limit: '256kb' })` is the first line of defence against payload-amplification attacks against `sanitize-html`.
 - **No rate limiting or auth.** This service expects to live behind a gateway that handles those concerns. If you expose it directly, put a reverse proxy in front.
+- **Property-based fuzzing.** `tests/fuzzing.test.js` runs `fast-check` against `/validate` to exercise invariants (no dangerous tags ever leak to `sanitized`, sanitization is idempotent, front matter never appears inside `sanitized`). Hundreds of randomized payloads per release.
 
 `npm audit` reports zero vulnerabilities at the time of writing (May 2026, against `express@5`, `sanitize-html@2.17`, `jest@30`, `supertest@7.2`).
 
@@ -101,6 +102,7 @@ The JSON body limit is fixed at `256kb`. Markdown larger than that is rejected b
 ```
 server.js                 Express app + /validate and /health handlers. Single source of truth.
 tests/validation.test.js  Jest + Supertest suite covering happy path and rejection cases.
+tests/fuzzing.test.js     Property-based tests (fast-check) for sanitizer invariants.
 Dockerfile, .dockerignore Container build.
 ```
 
