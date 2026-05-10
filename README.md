@@ -80,11 +80,16 @@ The image is built on `node:24-alpine`, runs as the unprivileged `node` user, an
 
 ## Configuration
 
-| Env var | Default | Description |
-|---------|---------|-------------|
-| `PORT`  | `5001`  | TCP port the HTTP server binds to. |
+| Env var     | Default       | Description |
+|-------------|---------------|-------------|
+| `PORT`      | `5001`        | TCP port the HTTP server binds to. |
+| `LOG_LEVEL` | `info`        | `pino` log level (`trace`, `debug`, `info`, `warn`, `error`, `fatal`, `silent`). Forced to `silent` under `NODE_ENV=test`. |
 
 The JSON body limit is fixed at `256kb`. Markdown larger than that is rejected by Express with a `413` before reaching the handler. Adjust `express.json({ limit: ... })` in `server.js` if you need more.
+
+### Logging and request correlation
+
+Every request is logged as a single JSON line on stdout via [`pino-http`](https://github.com/pinojs/pino-http). Each request is tagged with an id surfaced in the `x-request-id` response header and included in every log line. If the caller sends an `x-request-id` header that matches `^[a-zA-Z0-9_.-]{1,128}$`, the service reuses it; otherwise a fresh UUID is generated. Use this id to correlate a client trace with the server log for a given request.
 
 ## Security notes
 
@@ -95,7 +100,7 @@ The JSON body limit is fixed at `256kb`. Markdown larger than that is rejected b
 - **No rate limiting or auth.** This service expects to live behind a gateway that handles those concerns. If you expose it directly, put a reverse proxy in front.
 - **Property-based fuzzing.** `tests/fuzzing.test.js` runs `fast-check` against `/validate` to exercise invariants (no dangerous tags ever leak to `sanitized`, sanitization is idempotent, front matter never appears inside `sanitized`). Hundreds of randomized payloads per release.
 
-`npm audit` reports zero vulnerabilities at the time of writing (May 2026, against `express@5`, `sanitize-html@2.17`, `jest@30`, `supertest@7.2`).
+`npm audit` reports zero vulnerabilities at the time of writing (May 2026, against `express@5`, `sanitize-html@2.17`, `pino@10`, `pino-http@11`, `jest@30`, `supertest@7.2`, `fast-check@4`).
 
 ## Project layout
 
@@ -103,6 +108,7 @@ The JSON body limit is fixed at `256kb`. Markdown larger than that is rejected b
 server.js                 Express app + /validate and /health handlers. Single source of truth.
 tests/validation.test.js  Jest + Supertest suite covering happy path and rejection cases.
 tests/fuzzing.test.js     Property-based tests (fast-check) for sanitizer invariants.
+tests/request-id.test.js  Coverage for the x-request-id middleware.
 Dockerfile, .dockerignore Container build.
 ```
 

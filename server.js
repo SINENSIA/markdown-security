@@ -1,12 +1,41 @@
 const express = require('express');
+const crypto = require('node:crypto');
 const sanitizeHtml = require('sanitize-html');
+const pino = require('pino');
+const pinoHttp = require('pino-http');
+
+const REQUEST_ID_RE = /^[a-zA-Z0-9_.-]{1,128}$/;
+const FRONT_MATTER_RE = /^---\n([\s\S]*?)\n---\n/;
+const HTML_LIKE = /<\s*[a-zA-Z!/]/;
+
+const logger = pino({
+    level:
+        process.env.LOG_LEVEL ||
+        (process.env.NODE_ENV === 'test' ? 'silent' : 'info'),
+});
 
 const app = express();
 app.set('query parser', 'simple');
-app.use(express.json({ limit: '256kb' }));
 
-const FRONT_MATTER_RE = /^---\n([\s\S]*?)\n---\n/;
-const HTML_LIKE = /<\s*[a-zA-Z!/]/;
+app.use(
+    pinoHttp({
+        logger,
+        genReqId: (req) => {
+            const incoming = req.headers['x-request-id'];
+            if (typeof incoming === 'string' && REQUEST_ID_RE.test(incoming)) {
+                return incoming;
+            }
+            return crypto.randomUUID();
+        },
+    })
+);
+
+app.use((req, res, next) => {
+    res.setHeader('x-request-id', req.id);
+    next();
+});
+
+app.use(express.json({ limit: '256kb' }));
 
 const validateBody = (body) => {
     const sanitized = sanitizeHtml(body, {
@@ -63,7 +92,7 @@ app.post('/validate', (req, res) => {
 if (require.main === module) {
     const PORT = process.env.PORT || 5001;
     app.listen(PORT, () => {
-        console.log(`Server listening on http://localhost:${PORT}`);
+        logger.info({ port: Number(PORT) }, 'Server listening');
     });
 }
 
