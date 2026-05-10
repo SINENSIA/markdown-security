@@ -5,9 +5,14 @@ const request = require("supertest");
 const { loadAllowlist, DEFAULT_ALLOWLIST } = require("../lib/allowlist");
 
 const writeFixture = (name, content) => {
-  const file = path.join(os.tmpdir(), `${name}-${Date.now()}-${Math.random().toString(36).slice(2)}.json`);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "allowlist-test-"));
+  const file = path.join(dir, `${name}.json`);
   fs.writeFileSync(file, typeof content === "string" ? content : JSON.stringify(content));
   return file;
+};
+
+const removeFixture = (file) => {
+  fs.rmSync(path.dirname(file), { recursive: true, force: true });
 };
 
 describe("loadAllowlist", () => {
@@ -30,7 +35,7 @@ describe("loadAllowlist", () => {
       expect(loaded.allowedTags).toEqual(["p", "em"]);
       expect(loaded.disallowedTagsMode).toBe("escape");
     } finally {
-      fs.unlinkSync(file);
+      removeFixture(file);
     }
   });
 
@@ -45,7 +50,7 @@ describe("loadAllowlist", () => {
     try {
       expect(() => loadAllowlist({ path: file })).toThrow(/invalid JSON/);
     } finally {
-      fs.unlinkSync(file);
+      removeFixture(file);
     }
   });
 
@@ -56,7 +61,7 @@ describe("loadAllowlist", () => {
         /allowedTags.*array/
       );
     } finally {
-      fs.unlinkSync(file);
+      removeFixture(file);
     }
   });
 
@@ -67,7 +72,7 @@ describe("loadAllowlist", () => {
         /top-level must be a JSON object/
       );
     } finally {
-      fs.unlinkSync(file);
+      removeFixture(file);
     }
   });
 });
@@ -108,7 +113,7 @@ describe("ALLOWLIST_FILE integration", () => {
       expect(res.body.safe).toBe(true);
       expect(res.body.sanitized).toContain("<iframe");
     } finally {
-      fs.unlinkSync(file);
+      removeFixture(file);
     }
   });
 });
