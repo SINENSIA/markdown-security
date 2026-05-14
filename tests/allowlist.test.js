@@ -20,6 +20,7 @@ describe("loadAllowlist", () => {
     expect(loadAllowlist({ path: undefined })).toBe(DEFAULT_ALLOWLIST);
     expect(DEFAULT_ALLOWLIST.allowedTags).toContain("p");
     expect(DEFAULT_ALLOWLIST.allowedTags).not.toContain("script");
+    expect(DEFAULT_ALLOWLIST.nonTextTags).toContain("xmp");
   });
 
   it("reads a JSON file when a path is provided", () => {
@@ -34,6 +35,22 @@ describe("loadAllowlist", () => {
       const loaded = loadAllowlist({ path: file });
       expect(loaded.allowedTags).toEqual(["p", "em"]);
       expect(loaded.disallowedTagsMode).toBe("escape");
+      expect(loaded.nonTextTags).toContain("xmp");
+    } finally {
+      removeFixture(file);
+    }
+  });
+
+  it("does not force xmp into nonTextTags when xmp is explicitly allowed", () => {
+    const file = writeFixture("xmp-allowed", {
+      allowedTags: ["xmp"],
+      allowedAttributes: {},
+      disallowedTagsMode: "discard",
+    });
+
+    try {
+      const loaded = loadAllowlist({ path: file });
+      expect(loaded.nonTextTags).toBeUndefined();
     } finally {
       removeFixture(file);
     }

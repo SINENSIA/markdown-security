@@ -163,6 +163,21 @@ describe("Markdown Validator API", () => {
     });
   });
 
+  describe("sanitize-html hardening", () => {
+    it("drops xmp raw-text payloads instead of re-emitting active HTML", async () => {
+      const response = await request(app)
+        .post("/validate")
+        .send({ markdown: "<xmp><img src=x onerror=alert(1)></xmp>" })
+        .set("Content-Type", "application/json");
+
+      expect(response.status).toBe(200);
+      expect(response.body.safe).toBe(false);
+      expect(response.body.sanitized).not.toMatch(/<img/i);
+      expect(response.body.sanitized).not.toMatch(/onerror/i);
+      expect(response.body.sanitized).toBe("");
+    });
+  });
+
   describe("Front matter", () => {
     it("flags a front matter containing HTML as unsafe", async () => {
       const markdown = "---\ntitle: <script>alert(1)</script>\n---\n# hello\n";
