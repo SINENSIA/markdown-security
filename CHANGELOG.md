@@ -6,8 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed
+- Minimum supported Node.js is now `>=22.12.0` (was `>=20`). `sanitize-html` 2.17.6 depends on the ESM-only `htmlparser2` 12, which requires native `require(esm)` support (stable since Node 22.12). The CI test matrix drops the now-EOL Node 20 and runs on 22 and 24.
+- The Jest suite transpiles the ESM-only `htmlparser2` dependency chain (`htmlparser2`, `domhandler`, `domutils`, `dom-serializer`, `domelementtype`, `entities`) to CommonJS via `@swc/jest`, configured in a new `jest.config.js`. Jest's runtime cannot evaluate ESM `import` syntax; the production server loads these packages natively, so the transform is test-only.
+
 ### Fixed
 - The `SBOM` workflow now invokes `@cyclonedx/cyclonedx-npm` via `npx` (pinned to `^4`) instead of `npm run sbom`. This decouples the release-time SBOM generation from the local script, so the workflow can backfill SBOMs against historical tags that pre-date the script.
+
+### Security
+- Bumped `sanitize-html` from 2.17.4 to 2.17.6, which fixes an XSS/allowlist bypass where the raw-text content of `textarea`/`xmp` nested inside an `svg` or `math` root was re-emitted without HTML-escaping, plus a related mutation-XSS via end tags.
 
 ## [2.3.0] - 2026-05-10
 
