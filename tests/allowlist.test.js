@@ -133,4 +133,38 @@ describe("ALLOWLIST_FILE integration", () => {
       removeFixture(file);
     }
   });
+
+  it("strips javascript: from SVG SMIL href URI-lists (GHSA-g8qq-57p8-ggw5)", async () => {
+    const file = writeFixture("svg-smil", {
+      allowedTags: ["svg", "a", "animate", "text"],
+      allowedAttributes: {
+        animate: ["attributename", "values", "dur", "fill"],
+        text: ["y"],
+      },
+      allowedSchemes: ["http", "https", "mailto"],
+      allowedSchemesAppliedToAttributes: ["href", "src", "cite", "values"],
+      disallowedTagsMode: "discard",
+    });
+    process.env.ALLOWLIST_FILE = file;
+
+    let app;
+    jest.isolateModules(() => {
+      app = require("../server");
+    });
+
+    try {
+      const res = await request(app)
+        .post("/validate")
+        .send({
+          markdown:
+            '<svg><a><animate attributeName="href" values="#safe;javascript:alert(\'XSS\')" dur=".01s" fill="freeze"></animate><text y="30">Click me</text></a></svg>',
+        })
+        .set("Content-Type", "application/json");
+
+      expect(res.body.safe).toBe(false);
+      expect(res.body.sanitized).not.toMatch(/javascript:/i);
+    } finally {
+      removeFixture(file);
+    }
+  });
 });
