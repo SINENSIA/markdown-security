@@ -37,7 +37,7 @@
     "@cyclonedx/cyclonedx-npm": "^6.0.1",
     "@swc/core": "^1.15.43",
     "@swc/jest": "^0.2.39",
-    "fast-check": "^4.9.0",
+    "fast-check": "^4.10.2",
     "jest": "^30.5.2",
     "supertest": "^7.2.2"
   },
