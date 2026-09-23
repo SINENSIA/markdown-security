@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Security
 - Bumped `sanitize-html` from 2.17.4 to 2.17.6, which fixes an XSS/allowlist bypass where the raw-text content of `textarea`/`xmp` nested inside an `svg` or `math` root was re-emitted without HTML-escaping, plus a related mutation-XSS via end tags.
+- Bumped `sanitize-html` from 2.17.6 to 2.17.7 (GHSA-g8qq-57p8-ggw5): SVG SMIL `values` URI-lists targeting `href` could smuggle a `javascript:` destination past the scheme policy. Only reachable with a custom `ALLOWLIST_FILE` that allows SVG animation; the default allowlist has no SVG tags.
 
 ## [2.3.0] - 2026-05-10
 
