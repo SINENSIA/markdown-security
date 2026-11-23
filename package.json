@@ -34,7 +34,7 @@
     "sanitize-html": "^2.18.2"
   },
   "devDependencies": {
-    "@cyclonedx/cyclonedx-npm": "^6.0.1",
+    "@cyclonedx/cyclonedx-npm": "^7.0.1",
     "@swc/core": "^1.16.22",
     "@swc/jest": "^0.2.39",
     "fast-check": "^4.10.2",
